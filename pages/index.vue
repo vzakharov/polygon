@@ -6,8 +6,8 @@
         h1.display-3.mt-3.text-center(style="font-size: 2em")
           strong Polygon.  
           | Add AI to your app with a few lines of code
-      b-row.justify-content-between.mt-4
-        b-col.col-12(:class="generated ? 'col-lg-4' : 'col-lg-6'")
+      b-row.justify-content-between.mt-2
+        b-col.mt-2.col-12(:class="generated ? 'col-lg-4' : 'col-lg-6'")
           h2.lead.strong What do you want to generate?
           div.d-flex.flex-wrap.align-items-center(style="font-size: 0.8em")
             //- Current whats
@@ -90,6 +90,7 @@
                   @click="deleteForWhat(key)"
                 )
                   b-icon-x-circle(style="width: 0.6em")
+              b-form-invalid-feedback(:state="!!forWhat[key]") Please add a value
           //- 
 
           //- Input to add a new forWhat
@@ -116,17 +117,24 @@
               )
               template(v-slot:description)
                 | We don’t store <a href="https://beta.openai.com/account/api-keys" target="_blank">your key</a>, it’s only used to make requests to OpenAI’s API.
+                b-form-invalid-feedback(:state="!!openAIkey") Please add your OpenAI API key
               b-input(
                 v-model="openAIkey"
+                type="password"
                 placeholder="sk-..."
                 style="font-size: 1em"
               )
         //- 
-        b-col.col-12(:class="generated ? 'col-lg-4' : 'col-lg-6'")
+        b-col.mt-2.col-12(:class="generated ? 'col-lg-4' : 'col-lg-6'")
           h2.lead.strong Here’s your code:
           //- Pre-formatted copiable div on dark background
-          div.bg-dark.p-3.rounded-top
-            pre.text-white(v-text="code" style="white-space: pre-wrap; font-size: 0.6em; height: 300px; overflow-y: auto")
+          div.rounded-top
+            pre.mb-0
+              code(
+                v-text="obfuscatedCode"
+                :class="`language-${languageForFormat[format]}`"
+                style="font-size: 0.6em; white-space: pre-wrap"
+              )
           //- Buttons to pick format: fetch, curl js
           div.d-flex.justify-content-between
             b-button-group
@@ -152,6 +160,7 @@
               type="submit"
               ref="generateButton"
               :variant="generating ? 'light' : 'primary'"
+              :disabled="generating || !openAIkey || !whats.length || !forWhatValid"
               size="lg"
               @click="generate()"
             )
@@ -163,17 +172,17 @@
               | Try it!
         //- 
         //- 
-        b-col.col-12.col-lg-4.pb-5.pb-lg-0(
+        b-col.mt-2.col-12.col-lg-4.pb-5.pb-lg-0(
             ref="generated"
             v-if="generated"
           )
           h2.lead.strong Here’s the response JSON:
-          div.p-3.rounded(:class="justGenerated ? 'bg-success' : 'bg-dark'")
-            pre.text-white(
-              v-text="generated"
-              style="white-space: pre-wrap; font-size: 0.6em; height: 300px; overflow-y: auto"
-              :class="generating ? 'text-muted' : ''"
-            )
+          div(:class="justGenerated ? 'bg-success' : 'bg-dark'")
+            pre
+              code.language-json(
+                v-text="generated"
+                style="white-space: pre-wrap; font-size: 0.6em; height: 300px; overflow-y: auto"
+              )
       //- 
 
 </template>
@@ -184,6 +193,9 @@
   import tryActionMixin from '~/plugins/mixins/tryAction'
   import log from '~/plugins/log'
   import _ from 'lodash'
+
+  import hljs from 'highlight.js'
+  import 'highlight.js/styles/github-dark.css'
 
   export default
 
@@ -204,7 +216,11 @@
       openAIkey: ''
       generated: ''
       justGenerated: false
-      formats: ['js', 'fetch', 'curl']
+      formats: ['js', 'js (fetch)', 'curl']
+      languageForFormat:
+        'js': 'javascript'
+        'js (fetch)': 'javascript'
+        'curl': 'bash'
       format: 'fetch'
       generating: false
       oldFocused: null
@@ -212,9 +228,12 @@
     
     computed:
 
+      forWhatValid: ->
+        _.every @forWhat, (v) -> v.length > 0
+
       code: ->
         switch @format
-          when 'fetch'
+          when 'js (fetch)'
             """
             await(
               await(
@@ -259,7 +278,11 @@
 
             // Pro tip: change args in the console, and they will automatically update here!
             """
-    
+      # 
+
+      obfuscatedCode: ->
+        @code.replace(/sk-\w+/g, 'sk-<your key here>')
+
     methods:
 
       deleteForWhat: (key) ->
@@ -355,10 +378,15 @@
         setTimeout =>
           @justGenerated = false
         , 500
+        @$nextTick -> window.hljs.highlightAll()
+      
+      code: ->
+        @$nextTick -> window.hljs.highlightAll()
 
     mounted: ->
 
       window.generate = @generate.bind @
+      window.hljs = hljs
 
 </script>
 
