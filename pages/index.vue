@@ -1,7 +1,8 @@
 <template lang="pug">
   div.vh-100.d-flex.flex-column.justify-content-center.align-items-center
     b-container
-      h1.display-3.mb-5.text-center(style="font-size: 3em")
+      h1.display-3.mb-5.text-center(style="font-size: 2.5em")
+        strong Polygon.  
         | Add AI to your app with a couple lines of code
       b-row.justify-content-center
         b-col.col-12.col-lg-4
