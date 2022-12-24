@@ -1,11 +1,27 @@
 <template lang="pug">
   div.d-flex.flex-column.justify-content-center.align-items-center(@keyup.shift.enter.prevent="generate()")
     b-container
-      b-row.mb-2.border-bottom.justify-content-center.align-items-center
+      b-row.justify-content-center.align-items-center
         img.m-2(src="polygon.png" alt="Polygon" style="width: 100px; height: 100px")
         h1.display-3.mt-3.text-center(style="font-size: 2em")
           strong Polygon.  
           | Add AI to your app with a few lines of code
+      //- Example picker
+      b-row.lead.pb-2.mb-2.border-bottom.justify-content-center(style="font-size: 0.8em")
+        span.mx-1 Examples:
+        div.mx-1(v-for="example, index in examples" :key="example.caption")
+          span(
+            variant="light"
+            @click="whats = example.whats; forWhat = example.forWhat; generated = false"
+            @mouseover="hoveredExample = index"
+            @mouseout="hoveredExample = null"
+            :class="hoveredExample === index ? 'text-primary' : ''"
+            style="cursor: pointer"
+            :id="'example-' + index"
+            v-b-popover.hover.bottom="example.description"
+          )
+            span {{ example.caption }}
+      //- 
       b-row.justify-content-between.mt-2
         b-col.mt-2.col-12(:class="generated ? 'col-lg-4' : 'col-lg-6'")
           h2.lead.strong What do you want to generate?
@@ -170,6 +186,8 @@
             span(v-else)
               b-icon-play
               | Try it!
+          span.text-muted.text-center.small.d-none.d-lg-block
+            | ( Shift+Enter )
         //- 
         //- 
         b-col.mt-2.col-12.col-lg-4.pb-5.pb-lg-0(
@@ -197,18 +215,48 @@
   import hljs from 'highlight.js'
   import 'highlight.js/styles/github-dark.css'
 
+  defaultExamples = [
+    {
+      caption: 'Tweet generator'
+      description: 'Imagine you’re building a tweet scheduler. You can get your user’s bio via the Twitter API, and use it to generate an engaging tweet for them.'
+      whats: ['tweet', 'hashtags']
+      forWhat:
+        bio: 'I’m an indie hacker who likes to build things and is passionate about cats, running, and the outdoors.'
+        topic: 'life philosophy'
+    },
+    {
+      caption: 'Article title, intro & outline'
+      description: 'Imagine you’re building a blogging platform and you want to help your users overcome writer’s block. You give your users an input field to enter a topic, and then use this API to generate a title, intro and outline for their article.'
+      whats: ['title', 'intro', 'outline']
+      forWhat:
+        topic: 'functional programming'
+        generationComments: 'The outline must be a nested bullet list in markdown format.'
+    },
+    {
+      caption: 'Cheeky quotes'
+      description: 'Imagine you’re building a text-to-speech app that allows users to speak in celebrity voices. You can use this API to generate a cheeky (or not so cheeky) quote in the style of the celebrity of their choice.'
+      whats: ['quote', 'explanationForUser']
+      forWhat:
+        celebrity: 'Arnold Schwarzenegger'
+        tone: 'cheeky'
+    }
+  ]
+
   export default
 
     mixins: [
       syncLocalMixin
-        keys: ['whats', 'forWhat', 'openAIkey', 'format']
+        keys: ['whats', 'forWhat', 'openAIkey', 'format', 'examples']
         format: 'yaml'
         prefix: 'polygon'
+        mergeObjects: false
       tryActionMixin
     ]
 
     data: ->
 
+      examples: defaultExamples
+      hoveredExample: null
       whats: ['name', 'tagline']
       newWhat: ''
       forWhat:
@@ -281,7 +329,7 @@
       # 
 
       obfuscatedCode: ->
-        @code.replace(/sk-\w+/g, 'sk-<your key here>')
+        @code?.replace(/sk-\w+/g, 'sk-<your key here>')
 
     methods:
 

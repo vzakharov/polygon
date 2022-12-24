@@ -2,7 +2,7 @@ import yaml from 'js-yaml'
 import log from '~/plugins/log'
 import _ from 'lodash'
 
-export default ({ prefix, keys, format = 'json' } = {}) ->
+export default ({ prefix, keys, format = 'json', mergeObjects = true } = {}) ->
 
   log "Exporting syncLocal mixin with arguments: #{JSON.stringify(arguments[0])}"
 
@@ -78,7 +78,10 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
       _.set @, dataPath,
       log "Setting #{key} at #{dataPath} to:",
       if _.isObject(defaultValue) and not _.isArray(defaultValue)
-        {...defaultValue, ...localValue}
+        if mergeObjects
+          {...defaultValue, ...localValue}
+        else
+          localValue or defaultValue
       else
         localValue or defaultValue
 
