@@ -7,12 +7,12 @@
           strong Polygon.  
           | Add AI to your app with a few lines of code
       //- Example picker
-      b-row.lead.pb-2.mb-2.border-bottom.justify-content-center(style="font-size: 0.8em")
+      b-row.lead.pb-2.mb-2.border-bottom.justify-content-center.align-items-center(style="font-size: 0.8em")
         span.mx-1 Examples:
         div.mx-1(v-for="example, index in examples" :key="example.caption")
           span(
             variant="light"
-            @click="whats = example.whats; forWhat = example.forWhat; generated = false"
+            @click="whats = example.whats; forWhat = example.forWhat; pickedExample = example; generated = false"
             @mouseover="hoveredExample = index"
             @mouseout="hoveredExample = null"
             :class="hoveredExample === index ? 'text-primary' : ''"
@@ -21,7 +21,54 @@
             v-b-popover.hover.bottom="example.description"
           )
             span {{ example.caption }}
+        //- Custom example
+        div.mx-1
+          span.strong(
+            variant="light"
+            @click="generateExample"
+            @mouseover="hoveredExample = -1"
+            @mouseout="hoveredExample = null"
+            :class="hoveredExample === -1 ? 'text-primary' : ''"
+            style="cursor: pointer"
+            :id="'example-random'"
+          )
+            b-spinner(v-if="generatingExample" small type="grow" variant="primary")
+            strong(v-else) 🪄 Example for your product
+          b-popover(
+            :target="'example-random'"
+            triggers="hover"
+            placement="bottom"
+          )
+            p.lead Let’s come up with something especially for you!
+            //- Enter product description, generate example
+            b-form(@submit.prevent="generateExample")
+              b-form-group(
+                  label="What is your product?"
+                )
+                b-input-group(size="sm")
+                  b-input(
+                    v-model="exampleProduct"
+                    placeholder="Or click 👉 for random example"
+                  )
+                  b-input-group-append
+                    b-button(
+                      size="sm"
+                      variant="primary"
+                      @click="generateExample"
+                    )
+                      b-icon-arrow-right-circle(style="width: 1em")
       //- 
+      b-row.justify-content-center.align-items-center(style="font-size: 0.8em")
+        b-alert(
+          v-if="!!pickedExample"
+          show
+          dismissible
+          @dismissed="pickedExample = null"
+        )
+          strong {{ pickedExample.caption }}  
+          | for  
+          strong {{ pickedExample.product }}
+          | : {{ pickedExample.description }}
       b-row.justify-content-between.mt-2
         b-col.mt-2.col-12(:class="generated ? 'col-lg-4' : 'col-lg-6'")
           h2.lead.strong What do you want to generate?
@@ -184,8 +231,8 @@
               b-spinner.mr-2(small)
               | Generating...
             span(v-else)
-              b-icon-play
-              | Try it!
+              b-icon(:icon="generated ? 'arrow-clockwise' : 'play'")
+              | {{ generated ? 'Try again' : 'Try it!' }}
           span.text-muted.text-center.small.d-none.d-lg-block
             | ( Shift+Enter )
         //- 
@@ -199,7 +246,7 @@
             pre
               code.language-json(
                 v-text="generated"
-                style="white-space: pre-wrap; font-size: 0.6em; height: 300px; overflow-y: auto"
+                style="white-space: pre-wrap; font-size: 0.9em; height: 300px; overflow-y: auto"
               )
       //- 
 
@@ -217,6 +264,7 @@
 
   defaultExamples = [
     {
+      product: 'Tweet scheduler'
       caption: 'Tweet generator'
       description: 'Imagine you’re building a tweet scheduler. You can get your user’s bio via the Twitter API, and use it to generate an engaging tweet for them.'
       whats: ['tweet', 'hashtags']
@@ -225,6 +273,7 @@
         topic: 'life philosophy'
     },
     {
+      product: 'Blogging platform'
       caption: 'Article title, intro & outline'
       description: 'Imagine you’re building a blogging platform and you want to help your users overcome writer’s block. You give your users an input field to enter a topic, and then use this API to generate a title, intro and outline for their article.'
       whats: ['title', 'intro', 'outline']
@@ -233,8 +282,9 @@
         generationComments: 'The outline must be a nested bullet list in markdown format.'
     },
     {
+      product: 'Voice modulation app'
       caption: 'Cheeky quotes'
-      description: 'Imagine you’re building a text-to-speech app that allows users to speak in celebrity voices. You can use this API to generate a cheeky (or not so cheeky) quote in the style of the celebrity of their choice.'
+      description: 'Imagine you’re building a vocie modulation app that allows users to speak in celebrity voices. You can use this API to generate a cheeky (or not so cheeky) quote in the style of the celebrity of their choice.'
       whats: ['quote', 'explanationForUser']
       forWhat:
         celebrity: 'Arnold Schwarzenegger'
@@ -246,7 +296,7 @@
 
     mixins: [
       syncLocalMixin
-        keys: ['whats', 'forWhat', 'openAIkey', 'format', 'examples']
+        keys: ['whats', 'forWhat', 'openAIkey', 'format', 'examples', 'exampleProduct']
         format: 'yaml'
         prefix: 'polygon'
         mergeObjects: false
@@ -255,7 +305,10 @@
 
     data: ->
 
+      generatingExample: false
+      exampleProduct: ''
       examples: defaultExamples
+      pickedExample: null
       hoveredExample: null
       whats: ['name', 'tagline']
       newWhat: ''
@@ -332,6 +385,50 @@
         @code?.replace(/sk-\w+/g, 'sk-<your key here>')
 
     methods:
+
+      generateExample: ->
+        
+        @try 'generatingExample', ->
+          
+          prompt = JSON.stringify(@examples)
+          # Remove the trailing ] and add a comma
+          prompt = prompt.slice(0, prompt.length - 1) + ','
+          feeder = '{"product":'
+          if @exampleProduct
+            feeder += JSON.stringify @exampleProduct
+          prompt += feeder
+          stop = "}}"
+
+          { choices: [{ text }] } = await(
+            await(
+              fetch('https://api.openai.com/v1/engines/text-davinci-003/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': "Bearer #{@openAIkey}"
+                },
+                body: JSON.stringify({
+                  prompt
+                  stop
+                  temperature: 0.5
+                  max_tokens: 300
+                })
+              })
+            )
+          ).json()
+          
+          text = feeder + text + stop
+
+          @pickedExample = JSON.parse text
+
+          { @whats, @forWhat } = @pickedExample
+
+          # If any of the keys of @forWhat is an array, join it with a comma
+          @forWhat = _.mapValues @forWhat, (v) ->
+            if _.isArray v
+              v.join ', '
+            else
+              v
 
       deleteForWhat: (key) ->
         if window.confirm("Are you sure you want to delete '#{key}'? THERE IS NO UNDO!")
@@ -420,6 +517,9 @@
       #
     
     watch:
+
+      pickedExample: ->
+        @generate()
 
       generated: ->
         @justGenerated = true
