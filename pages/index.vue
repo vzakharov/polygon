@@ -262,6 +262,8 @@
   import hljs from 'highlight.js'
   import 'highlight.js/styles/github-dark.css'
 
+  import mixpanel from 'mixpanel-browser'
+
   defaultExamples = [
     {
       product: 'Tweet scheduler'
@@ -296,7 +298,7 @@
 
     mixins: [
       syncLocalMixin
-        keys: ['whats', 'forWhat', 'openAIkey', 'format', 'examples', 'exampleProduct']
+        keys: ['whats', 'forWhat', 'openAIkey', 'format', 'exampleProduct']
         format: 'yaml'
         prefix: 'polygon'
         mergeObjects: false
@@ -304,7 +306,6 @@
     ]
 
     data: ->
-
       generatingExample: false
       exampleProduct: ''
       examples: defaultExamples
@@ -326,6 +327,15 @@
       generating: false
       oldFocused: null
       newForWhatKey: ''
+      mixpanelId: null
+
+    created: ->
+
+      mixpanel.init process.env.MIXPANEL_TOKEN,
+        loaded: (mp) =>
+          log 'mixpanel loaded with distinct id',
+          @mixpanelId = mp.get_distinct_id()
+          mp.track('page view', {page: 'demo'})
     
     computed:
 
@@ -389,6 +399,8 @@
       generateExample: ->
         
         @try 'generatingExample', ->
+
+          mixpanel.track('generate example')
           
           prompt = JSON.stringify(@examples)
           # Remove the trailing ] and add a comma
@@ -519,6 +531,9 @@
     watch:
 
       pickedExample: ->
+
+        mixpanel.track 'picked example', @pickedExample
+
         @generate()
 
       generated: ->
@@ -526,16 +541,30 @@
         setTimeout =>
           @justGenerated = false
         , 500
-        @$nextTick -> window.hljs.highlightAll()
+        @$nextTick -> hljs.highlightAll()
       
       code: ->
-        @$nextTick -> window.hljs.highlightAll()
+        @$nextTick -> hljs.highlightAll()
+      
+      openAIkey: (key) ->
+
+          keyHash = await do (key) ->
+            msgUint8 = new TextEncoder().encode key
+            hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)
+            hashArray = Array.from new Uint8Array hashBuffer
+            hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')            
+
+          if @keyHash isnt @mixpanelId
+            mixpanel.track 'key changed', {
+              keyHash
+            }
+
+            mixpanel.identify keyHash
 
     mounted: ->
 
       window.generate = @generate.bind @
-      window.hljs = hljs
-
+      
 </script>
 
 <style>

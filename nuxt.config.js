@@ -7,8 +7,9 @@ export default {
   },
 
   env: {
-    // API_URL: process.env.SERVER_URL || 'http://localhost:3700/api/polygon', // for local development
-    API_URL: process.env.SERVER_URL || 'https://ideality.app/api/polygon', // for production
+    API_URL: process.env.SERVER_URL || 'http://localhost:3700/api/polygon', // for local development
+    // API_URL: process.env.SERVER_URL || 'https://ideality.app/api/polygon', // for production
+    MIXPANEL_TOKEN: process.env.MIXPANEL_TOKEN || 'c8582487f9e7686276f47de40ab7a5a2'
   },
 
   // Global page headers: https://go.nuxtjs.dev/config-head
