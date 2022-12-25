@@ -71,32 +71,8 @@
           | : {{ pickedExample.description }}
       b-row.justify-content-between.mt-2
         b-col.mt-2.col-12(:class="generated ? 'col-lg-4' : 'col-lg-6'")
-          h2.lead.strong What do you want to generate?
-          div.d-flex.flex-wrap.align-items-center(style="font-size: 0.8em")
-            //- Current outputKeys
-            div.input-group-text.m-1.p-1(
-                v-for="outputKey in outputKeys" :key="outputKey"
-                style="font-size: 1em; height: 2.5em"
-              )
-              strong {{ outputKey }}
-              //- Small icon to remove the outputKey
-              b-button.text-muted.p-0.px-1(
-                size="sm"
-                variant="light"
-                style="background: transparent; border: none; font-size: 0.8em"
-                @click="outputKeys = outputKeys.filter(w => w !== outputKey)"
-              )
-                b-icon-x-circle(style="width: 0.6em")
-            //- Input to add a new outputKey
-            b-input.m-1(
-              v-model="newOutputKey"
-              placeholder="What else?"
-              @keyup.enter.prevent="addOutputKey"
-              @blur="addOutputKey"
-              style="width: 120px; font-size: 1em; height: 2em"
-            )
-          p.lead.strong.mt-2.mb-1 For what?
-          b-form-invalid-feedback(:state="outputKeys.length > 0") Please add at least one thing to generate
+
+          p.lead.strong.mt-2.mb-1 Inputs
           //- Current inputs (keys/values in the input object)
           div.d-flex.flex-wrap.align-items-center(style="font-size: 0.8em")
             //- div.d-flex.w-100.my-1(
@@ -142,8 +118,8 @@
 
               b-input.pt-1(
                 style="font-size: 1em"
-                placeholder="For what?"
                 v-model="input[key]"
+                placeholder="For outputKey?"
               )
 
               b-input-group-append
@@ -155,6 +131,33 @@
                   b-icon-x-circle(style="width: 0.6em")
               b-form-invalid-feedback(:state="!!input[key]") Please add a value
           //- 
+
+
+          h2.lead.strong What do you want to generate?
+          div.d-flex.flex-wrap.align-items-center(style="font-size: 0.8em")
+            //- Current outputKeys
+            div.input-group-text.m-1.p-1(
+                v-for="outputKey in outputKeys" :key="outputKey"
+                style="font-size: 1em; height: 2.5em"
+              )
+              strong {{ outputKey }}
+              //- Small icon to remove the outputKey
+              b-button.text-muted.p-0.px-1(
+                size="sm"
+                variant="light"
+                style="background: transparent; border: none; font-size: 0.8em"
+                @click="outputKeys = outputKeys.filter(w => w !== outputKey)"
+              )
+                b-icon-x-circle(style="width: 0.6em")
+            //- Input to add a new outputKey
+            b-input.m-1(
+              v-model="newOutputKey"
+              placeholder="What else?"
+              @keyup.enter.prevent="addOutputKey"
+              @blur="addOutputKey"
+              style="width: 120px; font-size: 1em; height: 2em"
+            )
+          b-form-invalid-feedback(:state="outputKeys.length > 0") Please add at least one thing to generate
 
           //- Input to add a new input
           b-form(@submit.prevent="addInput")
@@ -306,28 +309,32 @@
     ]
 
     data: ->
-      generatingExample: false
-      exampleProduct: ''
-      examples: defaultExamples
-      pickedExample: null
-      hoveredExample: null
-      outputKeys: ['name', 'tagline']
-      newOutputKey: ''
-      input:
-        company: 'A startup for people who would like to have a startup'
-      openAIkey: ''
-      generated: ''
-      justGenerated: false
-      formats: ['js', 'js (fetch)', 'curl']
-      languageForFormat:
-        'js': 'javascript'
-        'js (fetch)': 'javascript'
-        'curl': 'bash'
-      format: 'fetch'
-      generating: false
-      oldFocused: null
-      newInputKey: ''
-      mixpanelId: null
+
+      pickedExample = defaultExamples[0]
+
+      {
+        generatingExample: false
+        exampleProduct: ''
+        examples: defaultExamples
+        pickedExample
+        hoveredExample: null
+        outputKeys: defaultExamples[0].outputKeys
+        newOutputKey: ''
+        input: defaultExamples[0].input
+        openAIkey: ''
+        generated: ''
+        justGenerated: false
+        formats: ['js', 'js (fetch)', 'curl']
+        languageForFormat:
+          'js': 'javascript'
+          'js (fetch)': 'javascript'
+          'curl': 'bash'
+        format: 'fetch'
+        generating: false
+        oldFocused: null
+        newInputKey: ''
+        mixpanelId: null
+      }
 
     created: ->
 
@@ -354,8 +361,8 @@
                     'Content-Type': 'application/json',
                   },
                   body: JSON.stringify({
-                    outputKey: #{JSON.stringify @outputKeys},
-                    for: #{JSON.stringify @input},
+                    outputKeys: #{JSON.stringify @outputKeys},
+                    input: #{JSON.stringify @input},
                     openAIkey: #{JSON.stringify @openAIkey}
                   })
                 })
@@ -366,7 +373,7 @@
             """
             curl -X POST \\
               -H "Content-Type: application/json" \\
-              -d '{"outputKey": #{JSON.stringify @outputKeys}, "for": #{JSON.stringify @input}, "openAIkey": #{JSON.stringify @openAIkey}}' \\
+              -d '{"outputKeys": #{JSON.stringify @outputKeys}, "input": #{JSON.stringify @input}, "openAIkey": #{JSON.stringify @openAIkey}}' \\
               #{process.env.API_URL}/generate
             """
           when 'js'
@@ -383,7 +390,7 @@
             
             await generate(
                 #{JSON.stringify @outputKeys}, {
-                for: #{JSON.stringify @input}
+                input: #{JSON.stringify @input}
               }
             )
 
@@ -490,7 +497,7 @@
           variant: 'success'
           autoHideDelay: 1000
     
-      generate: (outputKeys, { for: input } = {}) ->
+      generate: (outputKeys, { input } = {}) ->
 
         if outputKeys
           @outputKeys = outputKeys
@@ -513,9 +520,9 @@
                   'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                  outputKey: @outputKeys,
-                  for: @input,
-                  openAIkey: @openAIkey
+                  @outputKeys
+                  @input
+                  @openAIkey
                 })
               })
             )
@@ -531,6 +538,8 @@
     watch:
 
       pickedExample: ->
+
+        if @syncLocal.ignoreWatchers.includes 'pickedExample' then return
 
         mixpanel.track 'picked example', @pickedExample
 
