@@ -12,7 +12,7 @@
         div.mx-1(v-for="example, index in examples" :key="example.caption")
           span(
             variant="light"
-            @click="inputs = example.inputs; output = example.output; pickedExample = example; generated = false"
+            @click="whats = example.whats; forWhat = example.forWhat; pickedExample = example; generated = false"
             @mouseover="hoveredExample = index"
             @mouseout="hoveredExample = null"
             :class="hoveredExample === index ? 'text-primary' : ''"
@@ -73,37 +73,37 @@
         b-col.mt-2.col-12(:class="generated ? 'col-lg-4' : 'col-lg-6'")
           h2.lead.strong What do you want to generate?
           div.d-flex.flex-wrap.align-items-center(style="font-size: 0.8em")
-            //- Current inputs
+            //- Current whats
             div.input-group-text.m-1.p-1(
-                v-for="input in inputs" :key="input"
+                v-for="what in whats" :key="what"
                 style="font-size: 1em; height: 2.5em"
               )
-              strong {{ input }}
-              //- Small icon to remove the input
+              strong {{ what }}
+              //- Small icon to remove the what
               b-button.text-muted.p-0.px-1(
                 size="sm"
                 variant="light"
                 style="background: transparent; border: none; font-size: 0.8em"
-                @click="inputs = inputs.filter(w => w !== input)"
+                @click="whats = whats.filter(w => w !== what)"
               )
                 b-icon-x-circle(style="width: 0.6em")
-            //- Input to add a new input
+            //- Input to add a new what
             b-input.m-1(
-              v-model="newInput"
+              v-model="newWhat"
               placeholder="What else?"
-              @keyup.enter.prevent="addInput"
-              @blur="addInput"
+              @keyup.enter.prevent="addWhat"
+              @blur="addWhat"
               style="width: 120px; font-size: 1em; height: 2em"
             )
-          b-form-invalid-feedback(:state="inputs.length > 0") Please add at least one thing to generate
-          p.lead.strong.mt-2.mb-1 For input?
-          //- Current outputs (keys/values in the output object)
+          b-form-invalid-feedback(:state="whats.length > 0") Please add at least one thing to generate
+          p.lead.strong.mt-2.mb-1 For what?
+          //- Current forWhats (keys/values in the forWhat object)
           div.d-flex.flex-wrap.align-items-center(style="font-size: 0.8em")
             //- div.d-flex.w-100.my-1(
-            //-     v-for="value, key in output" :key="key"
+            //-     v-for="value, key in forWhat" :key="key"
             //-   )
             b-input-group.m-1(
-                v-for="value, key in output" :key="key"
+                v-for="value, key in forWhat" :key="key"
                 size="sm"
               )
               //- div.rounded-left.bg-light.border.px-2.pt-1(
@@ -128,7 +128,7 @@
                 )
                 //- Input for new key name
                 b-form(
-                  @submit.prevent="renameOutput(key, $refs['newKey-' + key][0].vModelValue)"
+                  @submit.prevent="renameForWhat(key, $refs['newKey-' + key][0].vModelValue)"
                 )
                   b-input-group(size="sm")
                     b-input(
@@ -142,25 +142,25 @@
 
               b-input.pt-1(
                 style="font-size: 1em"
-                v-model="output[key]"
-                placeholder="For input?"
+                v-model="forWhat[key]"
+                placeholder="For what?"
               )
 
               b-input-group-append
                 b-button(
                   variant="outline-secondary"
                   style="font-size: 1em"
-                  @click="deleteOutput(key)"
+                  @click="deleteForWhat(key)"
                 )
                   b-icon-x-circle(style="width: 0.6em")
-              b-form-invalid-feedback(:state="!!output[key]") Please add a value
+              b-form-invalid-feedback(:state="!!forWhat[key]") Please add a value
           //- 
 
-          //- Input to add a new output
-          b-form(@submit.prevent="addOutput")
+          //- Input to add a new forWhat
+          b-form(@submit.prevent="addForWhat")
             b-input-group.mt-2(size="sm" style="width: 150px; font-size: 0.8em")
               b-input(
-                v-model="newOutputKey"
+                v-model="newForWhatKey"
                 :placeholder="'E.g. tone of voice'"
                 style="font-size: 1em;"
               )
@@ -168,7 +168,7 @@
                 b-button(
                   type="submit" variant="outline-secondary"
                   style="font-size: 1em"
-                  :disabled="!newOutputKey"
+                  :disabled="!newForWhatKey"
                 )
                   b-icon-plus
 
@@ -223,7 +223,7 @@
               type="submit"
               ref="generateButton"
               :variant="generating ? 'light' : 'primary'"
-              :disabled="generating || !openAIkey || !inputs.length || !outputValid"
+              :disabled="generating || !openAIkey || !whats.length || !forWhatValid"
               size="lg"
               @click="generate()"
             )
@@ -269,8 +269,8 @@
       product: 'Tweet scheduler'
       caption: 'Tweet generator'
       description: 'Imagine you’re building a tweet scheduler. You can get your user’s bio via the Twitter API, and use it to generate an engaging tweet for them.'
-      inputs: ['tweet', 'hashtags']
-      output:
+      whats: ['tweet', 'hashtags']
+      forWhat:
         bio: 'I’m an indie hacker who likes to build things and is passionate about cats, running, and the outdoors.'
         topic: 'life philosophy'
     },
@@ -278,8 +278,8 @@
       product: 'Blogging platform'
       caption: 'Article title, intro & outline'
       description: 'Imagine you’re building a blogging platform and you want to help your users overcome writer’s block. You give your users an input field to enter a topic, and then use this API to generate a title, intro and outline for their article.'
-      inputs: ['title', 'intro', 'outline']
-      output:
+      whats: ['title', 'intro', 'outline']
+      forWhat:
         topic: 'functional programming'
         generationComments: 'The outline must be a nested bullet list in markdown format.'
     },
@@ -287,8 +287,8 @@
       product: 'Voice modulation app'
       caption: 'Cheeky quotes'
       description: 'Imagine you’re building a vocie modulation app that allows users to speak in celebrity voices. You can use this API to generate a cheeky (or not so cheeky) quote in the style of the celebrity of their choice.'
-      inputs: ['quote', 'explanationForUser']
-      output:
+      whats: ['quote', 'explanationForUser']
+      forWhat:
         celebrity: 'Arnold Schwarzenegger'
         tone: 'cheeky'
     }
@@ -298,7 +298,7 @@
 
     mixins: [
       syncLocalMixin
-        keys: ['inputs', 'output', 'openAIkey', 'format', 'exampleProduct']
+        keys: ['whats', 'forWhat', 'openAIkey', 'format', 'exampleProduct']
         format: 'yaml'
         prefix: 'polygon'
         mergeObjects: false
@@ -311,9 +311,9 @@
       examples: defaultExamples
       pickedExample: null
       hoveredExample: null
-      inputs: ['name', 'tagline']
-      newInput: ''
-      output:
+      whats: ['name', 'tagline']
+      newWhat: ''
+      forWhat:
         company: 'A startup for people who would like to have a startup'
       openAIkey: ''
       generated: ''
@@ -326,7 +326,7 @@
       format: 'fetch'
       generating: false
       oldFocused: null
-      newOutputKey: ''
+      newForWhatKey: ''
       mixpanelId: null
 
     created: ->
@@ -339,8 +339,8 @@
     
     computed:
 
-      outputValid: ->
-        _.every @output, (v) -> v.length > 0
+      forWhatValid: ->
+        _.every @forWhat, (v) -> v.length > 0
 
       code: ->
         switch @format
@@ -354,8 +354,8 @@
                     'Content-Type': 'application/json',
                   },
                   body: JSON.stringify({
-                    input: #{JSON.stringify @inputs},
-                    for: #{JSON.stringify @output},
+                    what: #{JSON.stringify @whats},
+                    for: #{JSON.stringify @forWhat},
                     openAIkey: #{JSON.stringify @openAIkey}
                   })
                 })
@@ -366,7 +366,7 @@
             """
             curl -X POST \\
               -H "Content-Type: application/json" \\
-              -d '{"input": #{JSON.stringify @inputs}, "for": #{JSON.stringify @output}, "openAIkey": #{JSON.stringify @openAIkey}}' \\
+              -d '{"what": #{JSON.stringify @whats}, "for": #{JSON.stringify @forWhat}, "openAIkey": #{JSON.stringify @openAIkey}}' \\
               #{process.env.API_URL}/generate
             """
           when 'js'
@@ -382,8 +382,8 @@
             // 👇 This part works in the browser console on this page
             
             await generate(
-                #{JSON.stringify @inputs}, {
-                for: #{JSON.stringify @output}
+                #{JSON.stringify @whats}, {
+                for: #{JSON.stringify @forWhat}
               }
             )
 
@@ -433,26 +433,26 @@
 
           @pickedExample = JSON.parse text
 
-          { @inputs, @output } = @pickedExample
+          { @whats, @forWhat } = @pickedExample
 
-          # If any of the keys of @output is an array, join it with a comma
-          @output = _.mapValues @output, (v) ->
+          # If any of the keys of @forWhat is an array, join it with a comma
+          @forWhat = _.mapValues @forWhat, (v) ->
             if _.isArray v
               v.join ', '
             else
               v
 
-      deleteOutput: (key) ->
+      deleteForWhat: (key) ->
         if window.confirm("Are you sure you want to delete '#{key}'? THERE IS NO UNDO!")
-          delete @output[key]
-          @output = _.clone @output
+          delete @forWhat[key]
+          @forWhat = _.clone @forWhat
 
-      addOutput: ->
-        if @newOutputKey
-          @newOutputKey = _.camelCase @newOutputKey
-          @output[@newOutputKey] = ''
-          @newOutputKey = ''
-          @output = _.clone @output
+      addForWhat: ->
+        if @newForWhatKey
+          @newForWhatKey = _.camelCase @newForWhatKey
+          @forWhat[@newForWhatKey] = ''
+          @newForWhatKey = ''
+          @forWhat = _.clone @forWhat
 
       focusAndSelect: (element) ->
         @oldFocused = document.activeElement
@@ -463,10 +463,10 @@
         @oldFocused?.focus()
         @oldFocused = null
 
-      renameOutput: (oldKey, newKey) ->
+      renameForWhat: (oldKey, newKey) ->
         if not newKey
           return
-        if @output[newKey]
+        if @forWhat[newKey]
           @$bvToast.toast('This key already exists', {
             title: 'Error',
             variant: 'danger',            
@@ -474,14 +474,14 @@
             solid: true,            
           })
           return
-        @output[newKey] = @output[oldKey]
-        delete @output[oldKey]
-        @output = _.clone @output
+        @forWhat[newKey] = @forWhat[oldKey]
+        delete @forWhat[oldKey]
+        @forWhat = _.clone @forWhat
 
-      addInput: ->
-        if @newInput
-          @inputs.push _.camelCase @newInput
-          @newInput = ''
+      addWhat: ->
+        if @newWhat
+          @whats.push _.camelCase @newWhat
+          @newWhat = ''
 
       copyToClipboard: ->
         window.navigator.clipboard.writeText @code
@@ -490,17 +490,17 @@
           variant: 'success'
           autoHideDelay: 1000
     
-      generate: (inputs, { for: output } = {}) ->
+      generate: (whats, { for: forWhat } = {}) ->
 
-        if inputs
-          @inputs = inputs
-        if output
-          @output = output
+        if whats
+          @whats = whats
+        if forWhat
+          @forWhat = forWhat
 
-        if not _.isArray(@inputs)
-          @inputs = [inputs]
+        if not _.isArray(@whats)
+          @whats = [whats]
 
-        log 'inputs', @inputs
+        log 'whats', @whats
         @$refs.generateButton.scrollIntoView()
 
         @try 'generating', ->
@@ -513,8 +513,8 @@
                   'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                  input: @inputs,
-                  for: @output,
+                  what: @whats,
+                  for: @forWhat,
                   openAIkey: @openAIkey
                 })
               })
