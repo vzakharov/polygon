@@ -147,12 +147,12 @@
             | What keys do you want the API to return? Make them as self-explanatory as possible.
           div.d-flex.flex-wrap.align-items-center
             //- Current outputKeys
-            div.input-group-text.m-1.p-1(
+            div.input-group-text.my-1.mr-2(
                 v-for="outputKey in outputKeys" :key="outputKey"
               )
               strong {{ outputKey }}
               //- Small icon to remove the outputKey
-              b-button.text-muted.p-0.px-1(
+              b-button.text-muted.px-1(
                 size="sm"
                 variant="light"
                 style="background: transparent; border: none"
@@ -160,12 +160,12 @@
               )
                 b-icon-x-circle(style="width: 0.6em")
             //- Input to add a new outputKey
-            b-input.m-1(
+            b-input(
               v-model="newOutputKey"
               placeholder="What else?"
               @keyup.enter.prevent="addOutputKey"
               @blur="addOutputKey"
-              style="width: 120px; height: 2em;"
+              style="width: 120px;"
             )
           b-form-invalid-feedback(:state="outputKeys.length > 0") Please add at least one thing to generate
 
@@ -293,6 +293,7 @@
   import tryActionMixin from '~/plugins/mixins/tryAction'
   import log from '~/plugins/log'
   import _ from 'lodash'
+  import axios from 'axios'
 
   import hljs from 'highlight.js'
   import 'highlight.js/styles/github-dark.css'
@@ -362,12 +363,13 @@
         openAIkey: ''
         generated: ''
         justGenerated: false
-        formats: ['js', 'js (fetch)', 'curl']
+        formats: ['js', 'js (axios)', 'js (fetch)', 'curl']
         languageForFormat:
           'js': 'javascript'
           'js (fetch)': 'javascript'
+          'js (axios)': 'javascript'
           'curl': 'bash'
-        format: 'fetch'
+        format: 'js'
         generating: false
         oldFocused: null
         newInputKey: ''
@@ -393,32 +395,16 @@
         _.keys(@input).length > 0 && _.every @input, (v) -> v.length > 0
 
       code: ->
+
+        jsfy = (s, addIndent = '') ->
+          # Converts stringified json for input to look like a js object (withotu quotes around keys)
+          # We're assuming s is a stringified json object with a non-zero indent
+          s
+          .replace(/^( +)"([^"]+)":/gm, (match, indent, key) -> "#{indent}#{addIndent}#{key}:")
+          # Also add indent to the closing bracket
+          .replace(/^( *)}$/gm, (match, indent) -> "#{indent}#{addIndent}}")
+
         switch @format
-          when 'js (fetch)'
-            """
-            await(
-              await(
-                fetch('#{process.env.POLYGON_API_URL}/generate', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    outputKeys: #{JSON.stringify @outputKeys},
-                    input: #{JSON.stringify @input},
-                    openAIkey: #{JSON.stringify @openAIkey}
-                  })
-                })
-              )
-            ).json()
-            """
-          when 'curl'
-            """
-            curl -X POST \\
-              -H "Content-Type: application/json" \\
-              -d '{"outputKeys": #{JSON.stringify @outputKeys}, "input": #{JSON.stringify @input}, "openAIkey": #{JSON.stringify @openAIkey}}' \\
-              #{process.env.POLYGON_API_URL}/generate
-            """
           when 'js'
             """
             // import Generate from 'polygon-ai'
@@ -432,11 +418,44 @@
             // 👇 This part works in the browser console on this page
             
             await generate(
-                #{JSON.stringify @outputKeys},
-                #{JSON.stringify @input}
+              #{JSON.stringify @outputKeys},
+              #{jsfy (JSON.stringify @input, null, 2), '  '}
             )
 
             // Pro tip: change args in the console, and they will automatically update here!
+            """
+          when 'js (fetch)'
+            """
+            await(
+              await(
+                fetch('#{process.env.POLYGON_API_URL}/generate', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    outputKeys: #{JSON.stringify @outputKeys},
+                    input: #{jsfy (JSON.stringify @input, null, 2), '        '},
+                    openAIkey: #{JSON.stringify @openAIkey}
+                  })
+                })
+              )
+            ).json()
+            """
+          when 'js (axios)'
+            """
+            ( await(axios.post('#{process.env.POLYGON_API_URL}/generate', {
+              outputKeys: #{JSON.stringify @outputKeys},
+              input: #{jsfy (JSON.stringify @input, null, 2), '  '},
+              openAIkey: #{JSON.stringify @openAIkey}
+            })) ).data
+            """
+          when 'curl'
+            """
+            curl -X POST \\
+              -H "Content-Type: application/json" \\
+              -d '{"outputKeys": #{JSON.stringify @outputKeys}, "input": #{JSON.stringify @input}, "openAIkey": #{JSON.stringify @openAIkey}}' \\
+              #{process.env.POLYGON_API_URL}/generate
             """
       # 
 
@@ -580,6 +599,7 @@
     mounted: ->
 
       window.generate = @generate.bind @
+      window.axios = axios
       
 </script>
 
