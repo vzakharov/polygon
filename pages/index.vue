@@ -188,8 +188,7 @@
                 b-form-invalid-feedback(:state="!!openAIkey") Please add your OpenAI API key
               b-input-group
                 b-input(
-                  :value="openAIkey"
-                  @change="openAIkey = $event"
+                  v-model="openAIkey"
                   :type="showOpenAIkey ? 'text' : 'password'"
                   placeholder="sk-..."
                   style="font-size: 1em"
@@ -221,26 +220,27 @@
               b-icon-key(style="width: 0.8em")
           
           //- Try it!
-          b-button.mt-2(
-              block
-              type="submit"
-              ref="generateButton"
-              :variant="generating ? 'light' : 'primary'"
-              :disabled="generating || !openAIkey || !outputKeys.length || !inputValid"
-              size="lg"
-              @click="generate()"
-            )
-            span(v-if="generating")
-              b-spinner.mr-2(small)
-              | Generating...
-            span(v-else)
-              b-icon(:icon="generated ? 'arrow-clockwise' : 'play'")
-              | {{ generated ? 'Try again' : 'Try it!' }}
-          span.text-muted.text-center.small.d-none.d-lg-block
-            | ( Shift+Enter )
+          div.mb-5
+            b-button.mt-2(
+                block
+                type="submit"
+                ref="generateButton"
+                :variant="generating ? 'light' : 'primary'"
+                :disabled="generating || !openAIkey || !outputKeys.length || !inputValid"
+                size="lg"
+                @click="generate()"
+              )
+              span(v-if="generating")
+                b-spinner.mr-2(small)
+                | Generating...
+              span(v-else)
+                b-icon(:icon="generated ? 'arrow-clockwise' : 'play'")
+                | {{ generated ? 'Try again' : 'Try it!' }}
+            span.text-muted.text-center.small.d-none.d-lg-block
+              | ( Shift+Enter )
           //- 
         
-        b-col.mt-2
+        b-col.mt-2.mb-5.col-md-5
           b-tabs(no-fade)
             b-tab(title="Request")
               //- Pre-formatted copiable div on dark background
@@ -263,13 +263,13 @@
                     )
                     | {{ f }}
                 //- Copy to clipboard
-                b-button(
-                    variant="outline-secondary"
+                b-button.text-muted(
+                    variant="light"
                     size="sm"
                     @click="copyToClipboard"
                     style="border-top-left-radius: 0; border-top-right-radius: 0"
                   )
-                  b-icon-clipboard(style="width: 0.6em")
+                  | {{ justCopied ? 'Copied!' : 'Copy to clipboard' }}
             //- 
             
             b-tab(
@@ -277,7 +277,7 @@
                 ref="generated"
                 v-if="generated"
               )
-              div(:class="justGenerated ? 'bg-success' : 'bg-dark'")
+              div
                 pre
                   code.language-json(
                     v-text="generated"
@@ -309,7 +309,7 @@
       input:
         bio: 'I’m an indie hacker who likes to build things and is passionate about cats, running, and the outdoors.'
         topic: 'life philosophy'
-        comments: 'topicSuggestions means other topics they can tweet about based on their bio'
+        commentary: 'topicSuggestions means other topics they can tweet about based on their bio'
     },
     {
       product: 'Blogging platform'
@@ -318,16 +318,16 @@
       outputKeys: ['title', 'intro', 'outline']
       input:
         topic: 'functional programming'
-        generationComments: 'The outline must be a nested bullet list in markdown format.'
+        commentary: 'outline must be a nested bullet list in markdown format.'
     },
     {
       product: 'Voice modulation app'
       caption: 'Cheeky quotes'
-      description: 'Imagine you’re building a vocie modulation app that allows users to speak in celebrity voices. You can use this API to generate a cheeky (or not so cheeky) quote in the style of the celebrity of their choice.'
-      outputKeys: ['quote', 'explanationForUser']
+      description: 'Imagine you’re building a vocie modulation app that allows users to speak in celebrity voices. You can use this API to suggest them a celebrity and a quote based on a topic.'
+      outputKeys: ['quote', 'voiceActor']
       input:
-        celebrity: 'Arnold Schwarzenegger'
-        tone: 'cheeky'
+        topic: 'something stupid and funny'
+        commentary: 'voiceActor should be a celebrity with a recognizable voice.'
     }
   ]
 
@@ -347,6 +347,7 @@
       pickedExample = defaultExamples[0]
 
       {
+        justCopied: false
         showExampleDescription: true
         showOpenAIkey: false
         showOpenAIkeyEntry: false
@@ -528,10 +529,10 @@
 
       copyToClipboard: ->
         window.navigator.clipboard.writeText @code
-        @$bvToast.toast "Copied #{@format} code to clipboard",
-          title: 'Copied!'
-          variant: 'success'
-          autoHideDelay: 1000
+        @justCopied = true
+        setTimeout =>
+          @justCopied = false
+        , 1000
     
       generate: (outputKeys, { input } = {}) ->
 
@@ -583,6 +584,7 @@
       pickedExample: ->
 
         if @syncLocal.ignoreWatchers.includes 'pickedExample' then return
+        @generated = null
 
         mixpanel.track 'picked example', @pickedExample
 
