@@ -7,80 +7,77 @@
           strong Polygon.  
           | Add AI to your app with a few lines of code
       //- Example picker
-      b-row.lead.pb-2.mb-2.border-bottom.justify-content-center.align-items-center(style="font-size: 0.8em")
-        span.mx-1 Examples:
-        div.mx-1(v-for="example, index in examples" :key="example.caption")
-          span(
-            variant="light"
+      b-row.lead.pb-2.mb-2.border-bottom.justify-content-center.align-items-center
+        b-button.mx-1.text-muted(v-for="example, index in examples" :key="example.caption"
+            :variant="pickedExample === example ? 'outline-secondary' : 'light'"
+            size="sm"
             @click="outputKeys = example.outputKeys; input = example.input; pickedExample = example; generated = false"
-            @mouseover="hoveredExample = index"
-            @mouseout="hoveredExample = null"
-            :class="hoveredExample === index ? 'text-primary' : ''"
             style="cursor: pointer"
             :id="'example-' + index"
-            v-b-popover.hover.bottom="example.description"
           )
-            span {{ example.caption }}
+          span {{ example.caption }}
         //- Custom example
-        div.mx-1
-          span.strong(
-            variant="light"
-            @click="generateExample"
-            @mouseover="hoveredExample = -1"
-            @mouseout="hoveredExample = null"
-            :class="hoveredExample === -1 ? 'text-primary' : ''"
-            style="cursor: pointer"
-            :id="'example-random'"
-          )
-            b-spinner(v-if="generatingExample" small type="grow" variant="primary")
-            strong(v-else) 🪄 Example for your product
-          b-popover(
-            :target="'example-random'"
-            triggers="hover"
-            placement="bottom"
-          )
-            p.lead Let’s come up with something especially for you!
-            //- Enter product description, generate example
-            b-form(@submit.prevent="generateExample")
-              b-form-group(
-                  label="What is your product?"
+        b-button(
+          variant="light"
+          size="sm"
+          @click="generateExample"
+          style="cursor: pointer"
+          :id="'example-random'"
+        )
+          b-spinner(v-if="generatingExample" small type="grow" variant="primary")
+          strong(v-else) 💡
+        b-popover(
+          :target="'example-random'"
+          triggers="hover"
+          placement="bottom"
+        )
+          p.lead Let’s come up with something especially for you!
+          //- Enter product description, generate example
+          b-form(@submit.prevent="generateExample")
+            b-form-group(
+                label="What is your product?"
+              )
+              b-input-group(size="sm")
+                b-input(
+                  v-model="exampleProduct"
+                  placeholder="Or click 👉 for random example"
                 )
-                b-input-group(size="sm")
-                  b-input(
-                    v-model="exampleProduct"
-                    placeholder="Or click 👉 for random example"
+                b-input-group-append
+                  b-button(
+                    size="sm"
+                    variant="primary"
+                    @click="generateExample"
                   )
-                  b-input-group-append
-                    b-button(
-                      size="sm"
-                      variant="primary"
-                      @click="generateExample"
-                    )
-                      b-icon-arrow-right-circle(style="width: 1em")
+                    b-icon-arrow-right-circle(style="width: 1em")
+        //- 
+      
       //- 
       b-row.justify-content-center.align-items-center(style="font-size: 0.8em")
         b-alert(
-          v-if="!!pickedExample"
-          show
+          :show="showExampleDescription"
           dismissible
-          @dismissed="pickedExample = null"
+          @dismissed="showExampleDescription = false"
         )
-          strong {{ pickedExample.caption }}  
-          | for  
-          strong {{ pickedExample.product }}
-          | : {{ pickedExample.description }}
+          | {{ pickedExample.description }}
       b-row.justify-content-between.mt-2
-        b-col.mt-2.col-12(:class="generated ? 'col-lg-4' : 'col-lg-6'")
+        b-col.mt-2.col-12.col-md-7
 
-          p.lead.strong.mt-2.mb-1 Inputs
+          h2.lead.strong.mb-3(style="font-size: 1.5em")
+            strong {{ pickedExample.caption }}  
+            | for a  
+            strong {{ pickedExample.product.toLowerCase() }}
+
+
+          h3.lead.strong Inputs
+          small.form-text.text-muted.mb-2(style="font-size: 0.8em")
+            | What do you want the user to enter, or what data will you obtain programmatically?
           //- Current inputs (keys/values in the input object)
           div.d-flex.flex-wrap.align-items-center(style="font-size: 0.8em")
             //- div.d-flex.w-100.my-1(
             //-     v-for="value, key in input" :key="key"
             //-   )
-            b-input-group.m-1(
+            b-input-group.my-1(
                 v-for="value, key in input" :key="key"
-                size="sm"
               )
               //- div.rounded-left.bg-light.border.px-2.pt-1(
               //-   :id="'for-' + key"
@@ -90,7 +87,6 @@
                 :id="'for-' + key"
               )
                 b-input-group-text(
-                  style="font-size: 1em"
                 )
                   strong {{ key }}
               //- Edit on popover
@@ -117,35 +113,50 @@
               //- 
 
               b-input.pt-1(
-                style="font-size: 1em"
                 v-model="input[key]"
-                placeholder="For outputKey?"
+                placeholder="Input value to test the API"
               )
 
               b-input-group-append
-                b-button(
+                b-button.rounded-right(
                   variant="outline-secondary"
-                  style="font-size: 1em"
+                  style="font-size: 1em; border-color: #ced4da; border-left: 0"
                   @click="deleteInput(key)"
                 )
-                  b-icon-x-circle(style="width: 0.6em")
+                  b-icon-trash(style="width: 0.6em")
               b-form-invalid-feedback(:state="!!input[key]") Please add a value
+            //-
+
+            //- Add a new input
+            b-form(@submit.prevent="addInput")
+              b-input-group.mt-1(style="width: 150px")
+                b-input(
+                  v-model="newInputKey"
+                  :placeholder="'What else?'"
+                )
+                b-input-group-append
+                  b-button(
+                    type="submit" variant="outline-secondary"
+                    :disabled="!newInputKey"
+                  )
+                    b-icon-plus 
           //- 
 
 
-          h2.lead.strong What do you want to generate?
-          div.d-flex.flex-wrap.align-items-center(style="font-size: 0.8em")
+          h3.lead.strong.mt-3 Outputs
+          small.form-text.text-muted.mb-2(style="font-size: 0.8em")
+            | What keys do you want the API to return? Make them as self-explanatory as possible.
+          div.d-flex.flex-wrap.align-items-center
             //- Current outputKeys
             div.input-group-text.m-1.p-1(
                 v-for="outputKey in outputKeys" :key="outputKey"
-                style="font-size: 1em; height: 2.5em"
               )
               strong {{ outputKey }}
               //- Small icon to remove the outputKey
               b-button.text-muted.p-0.px-1(
                 size="sm"
                 variant="light"
-                style="background: transparent; border: none; font-size: 0.8em"
+                style="background: transparent; border: none"
                 @click="outputKeys = outputKeys.filter(w => w !== outputKey)"
               )
                 b-icon-x-circle(style="width: 0.6em")
@@ -155,71 +166,60 @@
               placeholder="What else?"
               @keyup.enter.prevent="addOutputKey"
               @blur="addOutputKey"
-              style="width: 120px; font-size: 1em; height: 2em"
+              style="width: 120px; height: 2em;"
             )
           b-form-invalid-feedback(:state="outputKeys.length > 0") Please add at least one thing to generate
 
-          //- Input to add a new input
-          b-form(@submit.prevent="addInput")
-            b-input-group.mt-2(size="sm" style="width: 150px; font-size: 0.8em")
-              b-input(
-                v-model="newInputKey"
-                :placeholder="'E.g. tone of voice'"
-                style="font-size: 1em;"
-              )
-              b-input-group-append
-                b-button(
-                  type="submit" variant="outline-secondary"
-                  style="font-size: 1em"
-                  :disabled="!newInputKey"
-                )
-                  b-icon-plus
 
           //- OpenAI key
-          div.mt-3
+          b-alert.m-3(
+              :variant="openAIkey ? 'info' : 'warning'"
+              v-if="!openAIkey || showOpenAIkeyEntry"
+              show
+              :dismissible="!!openAIkey"
+              @dismissed="showOpenAIkeyEntry = false"
+            )
             b-form-group.text-muted(
                 label="OpenAI API key"
-                style="font-size: 0.7em"
+                style="font-size: 0.8em"
               )
               template(v-slot:description)
                 | We don’t store <a href="https://beta.openai.com/account/api-keys" target="_blank">your key</a>, it’s only used to make requests to OpenAI’s API.
                 b-form-invalid-feedback(:state="!!openAIkey") Please add your OpenAI API key
-              b-input(
-                v-model="openAIkey"
-                type="password"
-                placeholder="sk-..."
-                style="font-size: 1em"
-              )
-        //- 
-        b-col.mt-2.col-12(:class="generated ? 'col-lg-4' : 'col-lg-6'")
-          h2.lead.strong Here’s your code:
-          //- Pre-formatted copiable div on dark background
-          div.rounded-top
-            pre.mb-0
-              code(
-                v-text="obfuscatedCode"
-                :class="`language-${languageForFormat[format]}`"
-                style="font-size: 0.6em; white-space: pre-wrap"
-              )
-          //- Buttons to pick format: fetch, curl js
-          div.d-flex.justify-content-between
-            b-button-group
-              b-button(
-                  v-for="f in formats" :key="f"
-                  size="sm"
-                  :variant="f === format ? 'secondary' : 'outline-secondary'"
-                  @click="format = f"
-                  style="border-top-left-radius: 0; border-top-right-radius: 0"
+              b-input-group
+                b-input(
+                  :value="openAIkey"
+                  @change="openAIkey = $event"
+                  :type="showOpenAIkey ? 'text' : 'password'"
+                  placeholder="sk-..."
+                  style="font-size: 1em"
                 )
-                | {{ f }}
-            //- Copy to clipboard
-            b-button(
-                variant="outline-secondary"
-                size="sm"
-                @click="copyToClipboard"
-                style="border-top-left-radius: 0; border-top-right-radius: 0"
-              )
-              b-icon-clipboard(style="width: 0.6em")
+                //- See the key
+                b-input-group-append
+                  b-button(
+                    variant="outline-secondary"
+                    size="sm"
+                    style="font-size: 0.8em"
+                    @click="showOpenAIkey = !showOpenAIkey"
+                  )
+                    b-icon(
+                      :icon="showOpenAIkey ? 'eye-slash' : 'eye'"
+                      style="width: 0.8em"
+                    )
+              
+          //- 
+
+          //- If not shown, show a small key icon in the bottom right corner in case the user wants to change the key
+          b-button(
+              v-else
+              variant="outline-secondary"
+              size="sm"
+              class="position-fixed"
+              style="bottom: 1em; right: 1em; font-size: 0.8em"
+              @click="showOpenAIkeyEntry = true"
+            )
+              b-icon-key(style="width: 0.8em")
+          
           //- Try it!
           b-button.mt-2(
               block
@@ -238,19 +238,52 @@
               | {{ generated ? 'Try again' : 'Try it!' }}
           span.text-muted.text-center.small.d-none.d-lg-block
             | ( Shift+Enter )
-        //- 
-        //- 
-        b-col.mt-2.col-12.col-lg-4.pb-5.pb-lg-0(
-            ref="generated"
-            v-if="generated"
-          )
-          h2.lead.strong Here’s the response JSON:
-          div(:class="justGenerated ? 'bg-success' : 'bg-dark'")
-            pre
-              code.language-json(
-                v-text="generated"
-                style="white-space: pre-wrap; font-size: 0.9em; height: 300px; overflow-y: auto"
+          //- 
+        
+        b-col.mt-2
+          b-tabs(no-fade)
+            b-tab(title="Request")
+              //- Pre-formatted copiable div on dark background
+              div.rounded-top
+                pre.mb-0
+                  code(
+                    v-text="obfuscatedCode"
+                    :class="`language-${languageForFormat[format]}`"
+                    style="font-size: 0.8em; white-space: pre-wrap"
+                  )
+              //- Buttons to pick format: fetch, curl js
+              div.d-flex.justify-content-between
+                b-button-group
+                  b-button(
+                      v-for="f in formats" :key="f"
+                      size="sm"
+                      :variant="f === format ? 'secondary' : 'outline-secondary'"
+                      @click="format = f"
+                      style="border-top-left-radius: 0; border-top-right-radius: 0"
+                    )
+                    | {{ f }}
+                //- Copy to clipboard
+                b-button(
+                    variant="outline-secondary"
+                    size="sm"
+                    @click="copyToClipboard"
+                    style="border-top-left-radius: 0; border-top-right-radius: 0"
+                  )
+                  b-icon-clipboard(style="width: 0.6em")
+            //- 
+            
+            b-tab(
+                title="Response"
+                ref="generated"
+                v-if="generated"
               )
+              div(:class="justGenerated ? 'bg-success' : 'bg-dark'")
+                pre
+                  code.language-json(
+                    v-text="generated"
+                    style="white-space: pre-wrap; font-size: 0.9em; overflow-y: auto"
+                  )
+            //- 
       //- 
 
 </template>
@@ -272,10 +305,11 @@
       product: 'Tweet scheduler'
       caption: 'Tweet generator'
       description: 'Imagine you’re building a tweet scheduler. You can get your user’s bio via the Twitter API, and use it to generate an engaging tweet for them.'
-      outputKeys: ['tweet', 'hashtags']
+      outputKeys: ['tweet', 'topicSuggestions']
       input:
         bio: 'I’m an indie hacker who likes to build things and is passionate about cats, running, and the outdoors.'
         topic: 'life philosophy'
+        comments: 'topicSuggestions means other topics they can tweet about based on their bio'
     },
     {
       product: 'Blogging platform'
@@ -313,11 +347,13 @@
       pickedExample = defaultExamples[0]
 
       {
+        showExampleDescription: true
+        showOpenAIkey: false
+        showOpenAIkeyEntry: false
         generatingExample: false
         exampleProduct: ''
         examples: defaultExamples
         pickedExample
-        hoveredExample: null
         outputKeys: defaultExamples[0].outputKeys
         newOutputKey: ''
         input: defaultExamples[0].input
@@ -529,7 +565,7 @@
           ).json()
 
           @generated = JSON.stringify(generatedObject, null, 2)
-          @$nextTick => @$refs.generated.scrollIntoView()
+          @$nextTick => @$refs.generated.activate()
           generatedObject
         #
       
@@ -537,13 +573,18 @@
     
     watch:
 
+      showOpenAIkey: (show) ->
+        # If shown, hide after 3 seconds
+        if show
+          setTimeout =>
+            @showOpenAIkey = false
+          , 3000
+
       pickedExample: ->
 
         if @syncLocal.ignoreWatchers.includes 'pickedExample' then return
 
         mixpanel.track 'picked example', @pickedExample
-
-        @generate()
 
       generated: ->
         @justGenerated = true
