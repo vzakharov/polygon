@@ -11,7 +11,7 @@
         b-button.mx-1.text-muted(v-for="example, index in examples" :key="example.caption"
             :variant="pickedExample === example ? 'outline-secondary' : 'light'"
             size="sm"
-            @click="outputKeys = example.outputKeys; input = example.input; pickedExample = example; generated = false"
+            @click="pickedExample = example; generated = false"
             style="cursor: pointer"
             :id="'example-' + index"
           )
@@ -37,18 +37,17 @@
             b-form-group(
                 label="What is your product?"
               )
-              b-input-group(size="sm")
-                b-input(
-                  v-model="exampleProduct"
-                  placeholder="Or click 👉 for random example"
-                )
-                b-input-group-append
-                  b-button(
-                    size="sm"
-                    variant="primary"
-                    @click="generateExample"
-                  )
-                    b-icon-arrow-right-circle(style="width: 1em")
+              b-input(
+                v-model="exampleProduct"
+                placeholder="an app for cats who love to code"
+                style="font-size: 0.8em"
+              )
+            b-button(
+              :variant="generatingExample ? 'outline-secondary' : 'primary'"
+              :disabled="generatingExample"
+              @click="generateExample"
+            )
+              | {{ generatingExample ? 'Generating...' : exampleProduct ? 'Generate' : 'I’m feeling lucky' }}
         //- 
       
       //- 
@@ -65,7 +64,7 @@
           h2.lead.strong.mb-3(style="font-size: 1.5em")
             strong {{ pickedExample.caption }}  
             | for a  
-            strong {{ pickedExample.product.toLowerCase() }}
+            strong {{ pickedExample.product && pickedExample.product.toLowerCase() }}
 
 
           h3.lead.strong Inputs
@@ -300,6 +299,8 @@
 
   import mixpanel from 'mixpanel-browser'
 
+  import PolygonClient from '~/plugins/polygonClient'
+
   defaultExamples = [
     {
       product: 'Tweet scheduler'
@@ -383,8 +384,13 @@
     
     computed:
 
+      polygon: -> new PolygonClient {
+        @openAIkey
+        vm: @
+      }
+
       inputValid: ->
-        _.every @input, (v) -> v.length > 0
+        _.keys(@input).length > 0 && _.every @input, (v) -> v.length > 0
 
       code: ->
         switch @format
@@ -392,7 +398,7 @@
             """
             await(
               await(
-                fetch('#{process.env.API_URL}/generate', {
+                fetch('#{process.env.POLYGON_API_URL}/generate', {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
@@ -411,7 +417,7 @@
             curl -X POST \\
               -H "Content-Type: application/json" \\
               -d '{"outputKeys": #{JSON.stringify @outputKeys}, "input": #{JSON.stringify @input}, "openAIkey": #{JSON.stringify @openAIkey}}' \\
-              #{process.env.API_URL}/generate
+              #{process.env.POLYGON_API_URL}/generate
             """
           when 'js'
             """
@@ -426,9 +432,8 @@
             // 👇 This part works in the browser console on this page
             
             await generate(
-                #{JSON.stringify @outputKeys}, {
-                input: #{JSON.stringify @input}
-              }
+                #{JSON.stringify @outputKeys},
+                #{JSON.stringify @input}
             )
 
             // Pro tip: change args in the console, and they will automatically update here!
@@ -452,32 +457,11 @@
           feeder = '{"product":'
           if @exampleProduct
             feeder += JSON.stringify @exampleProduct
-          prompt += feeder
-          stop = "}}"
 
-          { choices: [{ text }] } = await(
-            await(
-              fetch('https://api.openai.com/v1/engines/text-davinci-003/completions', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': "Bearer #{@openAIkey}"
-                },
-                body: JSON.stringify({
-                  prompt
-                  stop
-                  temperature: 0.5
-                  max_tokens: 300
-                })
-              })
-            )
-          ).json()
-          
-          text = feeder + text + stop
-
-          @pickedExample = JSON.parse text
-
-          { @outputKeys, @input } = @pickedExample
+          { choices: [ @pickedExample ] } = await @polygon.run 'generate-example', { prompt, feeder },
+            stop: '}}'
+            temperature: 0.5
+            max_tokens: 1000
 
           # If any of the keys of @input is an array, join it with a comma
           @input = _.mapValues @input, (v) ->
@@ -534,36 +518,14 @@
           @justCopied = false
         , 1000
     
-      generate: (outputKeys, { input } = {}) ->
+      generate: (outputKeys, input) ->
 
-        if outputKeys
-          @outputKeys = outputKeys
-        if input
-          @input = input
-
-        if not _.isArray(@outputKeys)
-          @outputKeys = [outputKeys]
-
-        log 'outputKeys', @outputKeys
-        @$refs.generateButton.scrollIntoView()
+        if outputKeys then @outputKeys = outputKeys
+        if input then @input = input
 
         @try 'generating', ->
 
-          generatedObject = await(
-            await(
-              fetch("#{process.env.API_URL}/generate", {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  @outputKeys
-                  @input
-                  @openAIkey
-                })
-              })
-            )
-          ).json()
+          generatedObject = await @polygon.generate @outputKeys, @input
 
           @generated = JSON.stringify(generatedObject, null, 2)
           @$nextTick => @$refs.generated.activate()
@@ -584,7 +546,9 @@
       pickedExample: ->
 
         if @syncLocal.ignoreWatchers.includes 'pickedExample' then return
+
         @generated = null
+        { @outputKeys, @input } = @pickedExample
 
         mixpanel.track 'picked example', @pickedExample
 
