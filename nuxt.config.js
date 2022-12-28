@@ -15,7 +15,7 @@ export default {
 
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
-    title: 'Polygon · Give your app an AI edge',
+    title: 'AlmostMagic · Add AI 🪄 to your app with one line of code',
     htmlAttrs: {
       lang: 'en'
     },
@@ -26,7 +26,7 @@ export default {
       { name: 'format-detection', content: 'telephone=no' }
     ],
     link: [
-      { rel: 'icon', type: 'image/x-icon', href: './polygon.png' }
+      { rel: 'icon', type: 'image/x-icon', href: './almostmagic.png' }
     ]
   },
 

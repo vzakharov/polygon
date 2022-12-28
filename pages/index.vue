@@ -2,10 +2,10 @@
   div.d-flex.flex-column.justify-content-center.align-items-center(@keyup.shift.enter.prevent="generate()")
     b-container
       b-row.justify-content-center.align-items-center(v-if="!$route.query.iframed")
-        img.m-2(src="polygon.png" alt="Polygon" style="width: 100px; height: 100px")
+        img.m-2(src="almostmagic.png" alt="Magic. Almost!" style="width: 100px; height: 100px")
         h1.display-3.mt-3.text-center(style="font-size: 2em")
-          strong Polygon.  
-          | Add AI to your app with a few lines of code
+          strong AlmostMagic.  
+          | Add AI 🪄 to your app with one line of code
       //- Example picker
       b-row.lead.pb-2.my-2.border-bottom.justify-content-center.align-items-center
         b-button.mx-1.text-muted(v-for="example, index in examples" :key="example.caption"
@@ -408,7 +408,7 @@
           when 'js'
             """
             // npm install almostmagic
-            //
+
             const { Magic } = require('almostmagic') // <-- for node
             // import Magic from 'almostmagic' // <-- for es6
 
