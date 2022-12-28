@@ -1,13 +1,13 @@
 <template lang="pug">
   div.d-flex.flex-column.justify-content-center.align-items-center(@keyup.shift.enter.prevent="generate()")
     b-container
-      b-row.justify-content-center.align-items-center
+      b-row.justify-content-center.align-items-center(v-if="!$route.query.iframed")
         img.m-2(src="polygon.png" alt="Polygon" style="width: 100px; height: 100px")
         h1.display-3.mt-3.text-center(style="font-size: 2em")
           strong Polygon.  
           | Add AI to your app with a few lines of code
       //- Example picker
-      b-row.lead.pb-2.mb-2.border-bottom.justify-content-center.align-items-center
+      b-row.lead.pb-2.my-2.border-bottom.justify-content-center.align-items-center
         b-button.mx-1.text-muted(v-for="example, index in examples" :key="example.caption"
             :variant="pickedExample === example ? 'outline-secondary' : 'light'"
             size="sm"
@@ -407,22 +407,16 @@
         switch @format
           when 'js'
             """
-            // import Generate from 'polygon-ai'
-            // 
-            // const generate = new Generate({
-            //   openAIkey: #{JSON.stringify @openAIkey}
-            // })
-            // 
-            // ☝️ This part doesn’t work yet, but it will soon!
+            // npm install almostmagic
+            //
+            const { Magic } = require('almostmagic') // <-- for node
+            // import Magic from 'almostmagic' // <-- for es6
 
-            // 👇 This part works in the browser console on this page
-            
-            await generate(
+            Magic.generate(
               #{JSON.stringify @outputKeys},
-              #{jsfy (JSON.stringify @input, null, 2), '  '}
-            )
-
-            // Pro tip: change args in the console, and they will automatically update here!
+              #{jsfy (JSON.stringify @input, null, 2), '  '},
+              { openaiKey: #{JSON.stringify @openAIkey} }
+            ).then(console.log)
             """
           when 'js (fetch)'
             """
