@@ -43,8 +43,8 @@ export default ({
 
       console.log 'Generating', outputKeys, input
 
-      if not _.isArray(outputKeys)
-        outputKeys = [ outputKeys ]
+      # if not _.isArray(outputKeys)
+      #   outputKeys = [ outputKeys ]
 
       { data } = await axios.post '/generate', {
         outputKeys
