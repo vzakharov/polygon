@@ -68,18 +68,12 @@
           h3.lead.strong Inputs
           small.form-text.text-muted.mb-2(style="font-size: 0.8em")
             | What do you want the user to enter, or what data will you obtain programmatically?
+
           //- Current inputs (keys/values in the input object)
           div.d-flex.flex-wrap.align-items-center(style="font-size: 0.8em")
-            //- div.d-flex.w-100.my-1(
-            //-     v-for="value, key in input" :key="key"
-            //-   )
             b-input-group.my-1(
                 v-for="value, key in input" :key="key"
               )
-              //- div.rounded-left.bg-light.border.px-2.pt-1(
-              //-   :id="'for-' + key"
-              //- )
-              //-   strong {{ key }}
               b-input-group-prepend(
                 :id="'for-' + key"
               )
@@ -114,13 +108,26 @@
                 placeholder="Input value to test the API"
               )
 
+              //- //- Turn into object button
+              //- b-input-group-append()
+              //-   b-button.rounded-right(
+              //-     variant="outline-secondary"
+              //-     style="font-size: 1em; border-color: #ced4da; border-left: 0"
+              //-     @click="input[key] = {}"
+              //-     title="Turn into object"
+              //-   )
+              //-     b-icon-braces(style="width: 0.6em")
+
+              //- Delete button
               b-input-group-append
                 b-button.rounded-right(
                   variant="outline-secondary"
                   style="font-size: 1em; border-color: #ced4da; border-left: 0"
                   @click="deleteInput(key)"
+                  title="Delete"
                 )
                   b-icon-trash(style="width: 0.6em")
+
               b-form-invalid-feedback(:state="!!input[key]") Please add a value
             //-
 
@@ -137,8 +144,9 @@
                     :disabled="!newInputKey"
                   )
                     b-icon-plus 
-          //- 
+            //- 
 
+          //- 
 
           h3.lead.strong.mt-3 Outputs
           small.form-text.text-muted.mb-2(style="font-size: 0.8em")
