@@ -57,15 +57,13 @@
           dismissible
           @dismissed="showExampleDescription = false"
         )
-          | {{ pickedExample.description }}
-      b-row.justify-content-between.mt-2
-        b-col.mt-2.col-12.col-md-7
-
           h2.lead.strong.mb-3(style="font-size: 1.5em")
             strong {{ pickedExample.caption }}  
             | for a  
             strong {{ pickedExample.product && pickedExample.product.toLowerCase() }}
-
+          | {{ pickedExample.description }}
+      b-row.justify-content-between.mt-2
+        b-col.mt-2.col-12.col-md-7
 
           h3.lead.strong Inputs
           small.form-text.text-muted.mb-2(style="font-size: 0.8em")
@@ -592,7 +590,7 @@
 
     mounted: ->
 
-      window.generate = @generate.bind @
+      window.Magic = { generate: window.generate = @generate.bind @ }
       window.axios = axios
       
 </script>
