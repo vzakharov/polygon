@@ -332,12 +332,12 @@
     },
     {
       product: 'Voice modulation app'
-      caption: 'Cheeky quotes'
+      caption: 'Sarcastic quotes'
       description: 'Imagine you’re building a vocie modulation app that allows users to speak in celebrity voices. You can use this API to suggest them a celebrity and a quote based on a topic.'
-      outputKeys: ['quote', 'voiceActor']
+      outputKeys: ['sarcasticQuote', 'actor']
       input:
-        topic: 'something stupid and funny'
-        commentary: 'voiceActor should be a celebrity with a recognizable voice.'
+        topic: 'life philosophy'
+        commentary: 'actor should be a celebrity with a recognizable voice.'
     }
   ]
 
@@ -394,7 +394,10 @@
     
     computed:
 
-      magic: -> new Magic()
+      magic: -> new Magic({
+        openaiKey: @openAIkey
+        apiUrl: process.env.POLYGON_API_URL
+      })
 
       polygon: -> new PolygonClient {
         @openAIkey
@@ -419,8 +422,8 @@
             """
             // npm install almostmagic
 
-            const { Magic } = require('almostmagic') // <-- for node
-            // import Magic from 'almostmagic' // <-- for es6
+            import Magic from 'almostmagic' // <-- for es6
+            // const { Magic } = require('almostmagic') // <-- for node, note the destructuring
 
             Magic.generate(
               #{JSON.stringify @outputKeys},
@@ -472,26 +475,15 @@
         
         @try 'generatingExample', ->
 
-          mixpanel.track('generate example')
-          
-          prompt = JSON.stringify(@examples)
-          # Remove the trailing ] and add a comma
-          prompt = prompt.slice(0, prompt.length - 1) + ','
-          feeder = '{"product":'
-          if @exampleProduct
-            feeder += JSON.stringify @exampleProduct
+          mixpanel.track('generate example')          
 
-          { choices: [ @pickedExample ] } = await @polygon.run 'generate-example', { prompt, feeder },
-            stop: '}}'
-            temperature: 0.5
-            max_tokens: 1000
-
-          # If any of the keys of @input is an array, join it with a comma
-          @input = _.mapValues @input, (v) ->
-            if _.isArray v
-              v.join ', '
-            else
-              v
+          @pickedExample = await @magic.generate _.keys(_.last @examples),
+            @exampleProduct,
+            specs:
+              description: 'Generate ideas on how to use AI. The idea should only involve text generations (no images, no need to fetch external data, etc.)'
+            examples: @examples.map (example) =>
+              input: example.product if @exampleProduct
+              output: if @exampleProduct then _.omit example, 'product' else example
 
       deleteInput: (key) ->
         if window.confirm("Are you sure you want to delete '#{key}'? THERE IS NO UNDO!")
@@ -548,7 +540,7 @@
 
         @try 'generating', ->
 
-          generatedObject = await @polygon.generate @outputKeys, @input
+          generatedObject = await @magic.generate @outputKeys, @input
 
           @generated = JSON.stringify(generatedObject, null, 2)
           @$nextTick => @$refs.generated.activate()
