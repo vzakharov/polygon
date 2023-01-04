@@ -308,6 +308,8 @@
 
   import PolygonClient from '~/plugins/polygonClient'
 
+  import Magic from 'almostmagic'
+
   defaultExamples = [
     {
       product: 'Tweet scheduler'
@@ -391,6 +393,8 @@
           mp.track('page view', {page: 'demo'})
     
     computed:
+
+      magic: -> new Magic()
 
       polygon: -> new PolygonClient {
         @openAIkey
@@ -584,6 +588,8 @@
       openAIkey: (key) ->
 
           keyHash = await do (key) ->
+            # Remove half of the key to make it impossible to identify the user even if sha256 is broken
+            key = key.slice 0, key.length / 2
             msgUint8 = new TextEncoder().encode key
             hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)
             hashArray = Array.from new Uint8Array hashBuffer
@@ -595,11 +601,12 @@
             }
 
             mixpanel.identify keyHash
+          
+          @magic.config.openaiKey = key
 
     mounted: ->
 
-      window.Magic = { generate: window.generate = @generate.bind @ }
-      window.axios = axios
+      _.assign window, { Magic, @magic }
       
 </script>
 
